@@ -1,7 +1,7 @@
 resource "aws_launch_template" "default" {
-  count = module.this.enabled ? 1 : 0
+  count = module.context.enabled ? 1 : 0
 
-  name_prefix = format("%s%s", module.this.id, module.this.delimiter)
+  name_prefix = format("%s%s", module.context.id, module.context.delimiter)
 
   dynamic "block_device_mappings" {
     for_each = var.block_device_mappings
@@ -94,7 +94,7 @@ resource "aws_launch_template" "default" {
 
   # https://github.com/terraform-providers/terraform-provider-aws/issues/4570
   network_interfaces {
-    description                 = module.this.id
+    description                 = module.context.id
     device_index                = 0
     associate_public_ip_address = var.associate_public_ip_address
     delete_on_termination       = true
@@ -113,11 +113,11 @@ resource "aws_launch_template" "default" {
 
     content {
       resource_type = tag_specifications.value
-      tags          = module.this.tags
+      tags          = module.context.tags
     }
   }
 
-  tags = module.this.tags
+  tags = module.context.tags
 
   lifecycle {
     create_before_destroy = true
@@ -141,9 +141,9 @@ locals {
 }
 
 resource "aws_autoscaling_group" "default" {
-  count = module.this.enabled ? 1 : 0
+  count = module.context.enabled ? 1 : 0
 
-  name_prefix               = format("%s%s", module.this.id, module.this.delimiter)
+  name_prefix               = format("%s%s", module.context.id, module.context.delimiter)
   vpc_zone_identifier       = var.subnet_ids
   max_size                  = var.max_size
   min_size                  = var.min_size
@@ -242,10 +242,10 @@ resource "aws_autoscaling_group" "default" {
   }
 
   tags = flatten([
-    for key in keys(module.this.tags) :
+    for key in keys(module.context.tags) :
     {
       key                 = key
-      value               = module.this.tags[key]
+      value               = module.context.tags[key]
       propagate_at_launch = true
     }
   ])

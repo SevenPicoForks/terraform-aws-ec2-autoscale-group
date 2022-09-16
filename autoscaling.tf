@@ -1,11 +1,11 @@
 # https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/ec2-metricscollected.html
 locals {
-  autoscaling_enabled = module.this.enabled && var.autoscaling_policies_enabled
+  autoscaling_enabled = module.context.enabled && var.autoscaling_policies_enabled
 }
 
 resource "aws_autoscaling_policy" "scale_up" {
   count                  = local.autoscaling_enabled ? 1 : 0
-  name                   = "${module.this.id}${module.this.delimiter}scale${module.this.delimiter}up"
+  name                   = "${module.context.id}${module.context.delimiter}scale${module.context.delimiter}up"
   scaling_adjustment     = var.scale_up_scaling_adjustment
   adjustment_type        = var.scale_up_adjustment_type
   policy_type            = var.scale_up_policy_type
@@ -15,7 +15,7 @@ resource "aws_autoscaling_policy" "scale_up" {
 
 resource "aws_autoscaling_policy" "scale_down" {
   count                  = local.autoscaling_enabled ? 1 : 0
-  name                   = "${module.this.id}${module.this.delimiter}scale${module.this.delimiter}down"
+  name                   = "${module.context.id}${module.context.delimiter}scale${module.context.delimiter}down"
   scaling_adjustment     = var.scale_down_scaling_adjustment
   adjustment_type        = var.scale_down_adjustment_type
   policy_type            = var.scale_down_policy_type
@@ -26,7 +26,7 @@ resource "aws_autoscaling_policy" "scale_down" {
 locals {
   default_ec2_alarms = {
     cpu_high = {
-      alarm_name                = "${module.this.id}${module.this.delimiter}cpu${module.this.delimiter}utilization${module.this.delimiter}high"
+      alarm_name                = "${module.context.id}${module.context.delimiter}cpu${module.context.delimiter}utilization${module.context.delimiter}high"
       comparison_operator       = "GreaterThanOrEqualToThreshold"
       evaluation_periods        = var.cpu_utilization_high_evaluation_periods
       metric_name               = "CPUUtilization"
@@ -43,7 +43,7 @@ locals {
       insufficient_data_actions = []
     },
     cpu_low = {
-      alarm_name                = "${module.this.id}${module.this.delimiter}cpu${module.this.delimiter}utilization${module.this.delimiter}low"
+      alarm_name                = "${module.context.id}${module.context.delimiter}cpu${module.context.delimiter}utilization${module.context.delimiter}low"
       comparison_operator       = "LessThanOrEqualToThreshold"
       evaluation_periods        = var.cpu_utilization_low_evaluation_periods
       metric_name               = "CPUUtilization"
@@ -62,12 +62,12 @@ locals {
   }
 
   default_alarms = var.autoscaling_policies_enabled && var.default_alarms_enabled ? local.default_ec2_alarms : {}
-  all_alarms     = module.this.enabled ? merge(local.default_alarms, var.custom_alarms) : {}
+  all_alarms     = module.context.enabled ? merge(local.default_alarms, var.custom_alarms) : {}
 }
 
 resource "aws_cloudwatch_metric_alarm" "all_alarms" {
   for_each                  = local.all_alarms
-  alarm_name                = format("%s%s", "${module.this.id}${module.this.delimiter}", each.value.alarm_name)
+  alarm_name                = format("%s%s", "${module.context.id}${module.context.delimiter}", each.value.alarm_name)
   comparison_operator       = each.value.comparison_operator
   evaluation_periods        = each.value.evaluation_periods
   metric_name               = each.value.metric_name
