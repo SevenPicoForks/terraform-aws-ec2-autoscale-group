@@ -241,14 +241,14 @@ resource "aws_autoscaling_group" "default" {
     }
   }
 
-  tags = flatten([
-    for key in keys(module.context.tags) :
-    {
+  dynamic "tag" {
+    for_each = keys(module.context.tags)
+    content {
       key                 = key
       value               = module.context.tags[key]
       propagate_at_launch = true
     }
-  ])
+  }
 
   lifecycle {
     create_before_destroy = true
