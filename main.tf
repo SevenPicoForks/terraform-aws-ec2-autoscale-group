@@ -244,8 +244,8 @@ resource "aws_autoscaling_group" "default" {
   dynamic "tag" {
     for_each = keys(module.context.tags)
     content {
-      key                 = key
-      value               = module.context.tags[key]
+      key                 = tag.value
+      value               = module.context.tags[tag.value]
       propagate_at_launch = true
     }
   }
