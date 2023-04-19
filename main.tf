@@ -12,7 +12,7 @@ resource "aws_launch_template" "default" {
 
       // NOT GP2 Compatible
       dynamic "ebs" {
-        for_each = lookup(block_device_mappings.value, "ebs", null) != null && lookup(block_device_mappings.value.ebs, "iops", null) != null? ["ebs"] : []
+        for_each = lookup(block_device_mappings.value, "ebs", null) != null && lookup(block_device_mappings.value.ebs, "volume_type", null) != "gp2"? ["ebs"] : []
         content {
           delete_on_termination = lookup(block_device_mappings.value.ebs, "delete_on_termination", null)
           encrypted             = lookup(block_device_mappings.value.ebs, "encrypted", null)
@@ -26,7 +26,7 @@ resource "aws_launch_template" "default" {
 
       // GP2 Compatible
       dynamic "ebs" {
-        for_each = lookup(block_device_mappings.value, "ebs", null) != null && lookup(block_device_mappings.value.ebs, "iops", null) == null? ["ebs"] : []
+        for_each = lookup(block_device_mappings.value, "ebs", null) != null && lookup(block_device_mappings.value.ebs, "volume_type", null) == "gp2"? ["ebs"] : []
         content {
           delete_on_termination = lookup(block_device_mappings.value.ebs, "delete_on_termination", null)
           encrypted             = lookup(block_device_mappings.value.ebs, "encrypted", null)

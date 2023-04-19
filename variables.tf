@@ -71,21 +71,20 @@ variable "ebs_optimized" {
 
 variable "block_device_mappings" {
   description = "Specify volumes to attach to the instance besides the volumes specified by the AMI"
-  type = list(any)
-//  type = list(object({
-//    device_name  = string
-//    no_device    = bool
-//    virtual_name = string
-//    ebs = object({
-//      delete_on_termination = bool
-//      encrypted             = bool
-//      iops                  = number
-//      kms_key_id            = string
-//      snapshot_id           = string
-//      volume_size           = number
-//      volume_type           = string
-//    })
-//  }))
+  type = list(object({
+    device_name  = string
+    no_device    = bool
+    virtual_name = string
+    ebs = object({
+      delete_on_termination = bool
+      encrypted             = bool
+      iops                  = number
+      kms_key_id            = string
+      snapshot_id           = string
+      volume_size           = number
+      volume_type           = string
+    })
+  }))
 
   default = []
 }
