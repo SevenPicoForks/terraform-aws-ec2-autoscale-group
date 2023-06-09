@@ -1,8 +1,3 @@
-variable "region" {
-  type        = string
-  description = "AWS Region"
-}
-
 variable "availability_zones" {
   type        = list(string)
   description = "List of availability zones"
@@ -65,7 +60,7 @@ variable "instance_market_options" {
   default = null
 }
 
-variable mixed_instances_policy {
+variable "mixed_instances_policy" {
   description = "policy to used mixed group of on demand/spot of differing types. Launch template is automatically generated. https://www.terraform.io/docs/providers/aws/r/autoscaling_group.html#mixed_instances_policy-1"
 
   type = object({
