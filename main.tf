@@ -97,7 +97,7 @@ resource "aws_launch_template" "default" {
   network_interfaces {
     description                 = module.context.id
     device_index                = 0
-    associate_public_ip_address = false #var.associate_public_ip_address
+    associate_public_ip_address = var.associate_public_ip_address
     delete_on_termination       = true
     security_groups             = var.security_group_ids
   }
