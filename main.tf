@@ -1,4 +1,5 @@
 resource "aws_launch_template" "default" {
+  #checkov:skip=CKV_AWS_341:metadata response hop limit is controlled through variable. It should not be greater than 1.
   count = module.context.enabled ? 1 : 0
 
   name_prefix = format("%s%s", module.context.id, module.context.delimiter)
@@ -96,7 +97,7 @@ resource "aws_launch_template" "default" {
   network_interfaces {
     description                 = module.context.id
     device_index                = 0
-    associate_public_ip_address = var.associate_public_ip_address
+    associate_public_ip_address = false #var.associate_public_ip_address
     delete_on_termination       = true
     security_groups             = var.security_group_ids
   }
