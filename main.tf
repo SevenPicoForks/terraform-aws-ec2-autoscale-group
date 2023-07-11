@@ -1,4 +1,5 @@
 resource "aws_launch_template" "default" {
+  #checkov:skip=CKV_AWS_341:metadata response hop limit is controlled through variable. It should not be greater than 1.
   count = module.context.enabled ? 1 : 0
 
   name_prefix = format("%s%s", module.context.id, module.context.delimiter)
