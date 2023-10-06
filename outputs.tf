@@ -67,3 +67,8 @@ output "autoscaling_policy_scale_up_arn" {
   description = "ARN of the AutoScaling policy scale up"
   value       = join("", aws_autoscaling_policy.scale_up.*.arn)
 }
+
+output "sns_topic_arn" {
+  description = "ARN of the SNS topic"
+  value = try(module.sns.topic_arn,"")
+}

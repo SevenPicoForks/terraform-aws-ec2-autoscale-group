@@ -491,3 +491,9 @@ variable "warm_pool" {
   description = "If this block is configured, add a Warm Pool to the specified Auto Scaling group. See [warm_pool](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/autoscaling_group#warm_pool)."
   default     = null
 }
+
+variable "create_sns_notifications" {
+  type        = bool
+  default     = false
+  description = "Create Sns Notification for alarms"
+}
