@@ -497,3 +497,27 @@ variable "create_sns_notifications" {
   default     = false
   description = "Create Sns Notification for alarms"
 }
+
+variable "sns_subscriptions" {
+  type = map(object({
+    topic_arn = string
+    protocol  = string
+    endpoint  = string
+  }))
+  default = {}
+  description = <<EOF
+When create_sns_notifications = true
+sns_subscriptions = [
+  sqs = {
+      topic_arn = "arn:aws:sns:us-east-1:account_id:user-updates-topic"
+      protocol  = "sqs"
+      endpoint  = "arn:aws:sqs:us-east-1:account_id:terraform-queue-too"
+    }
+  email = {
+      topic_arn = "arn:aws:sns:us-east-1:account_id:user-updates-topic"
+      protocol  = "email"
+      endpoint  = "example@example.com"
+  }
+]
+EOF
+}

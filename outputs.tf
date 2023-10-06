@@ -70,5 +70,5 @@ output "autoscaling_policy_scale_up_arn" {
 
 output "sns_topic_arn" {
   description = "ARN of the SNS topic"
-  value = try(module.sns.topic_arn,"")
+  value       = try(module.sns.topic_arn, "")
 }
