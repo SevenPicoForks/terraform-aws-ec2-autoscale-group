@@ -492,17 +492,8 @@ variable "warm_pool" {
   default     = null
 }
 
-variable "create_sns_notifications" {
+variable "create_alert_sns_notifications" {
   type        = bool
   default     = false
   description = "Create Sns Notification for alarms."
-}
-
-variable "sns_subscriptions" {
-  type = map(object({
-    protocol  = string
-    endpoint  = string
-  }))
-  default     = {}
-  description = "create_sns_notifications = true Map of custom sns subscriptions."
 }
