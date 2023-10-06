@@ -61,7 +61,7 @@ module "sns" {
 
 resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
   for_each  = module.context.enabled && var.create_sns_notifications ? var.sns_subscriptions : {}
-  topic_arn = each.value.topic_arn
+  topic_arn = module.sns.topic_arn
   protocol  = each.value.protocol
   endpoint  = each.value.endpoint
 }

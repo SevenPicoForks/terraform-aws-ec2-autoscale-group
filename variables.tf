@@ -500,7 +500,6 @@ variable "create_sns_notifications" {
 
 variable "sns_subscriptions" {
   type = map(object({
-    topic_arn = string
     protocol  = string
     endpoint  = string
   }))
