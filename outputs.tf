@@ -13,15 +13,15 @@ output "cpu_high_alarm_name" {
 }
 
 output "cpu_low_alarm_name" {
-  value = { for key, value in aws_cloudwatch_metric_alarm.all_alarms : key => value.arn }
+  value = { for key, value in aws_cloudwatch_metric_alarm.all_alarms : key => value.alarm_name }
 }
 
 output "cpu_high_alarm_arn" {
-  value = aws_cloudwatch_metric_alarm.all_alarms["cpu_high"].arn
+  value = { for key, value in aws_cloudwatch_metric_alarm.all_alarms : key => value.arn }
 }
 
 output "cpu_low_alarm_arn" {
-  value = aws_cloudwatch_metric_alarm.all_alarms["cpu_low"].arn
+  value = { for key, value in aws_cloudwatch_metric_alarm.all_alarms : key => value.arn }
 }
 
 output "autoscaling_group_id" {
