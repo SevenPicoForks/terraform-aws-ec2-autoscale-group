@@ -8,6 +8,22 @@ output "launch_template_arn" {
   value       = join("", aws_launch_template.default.*.arn)
 }
 
+output "cpu_high_alarm_name" {
+  value = { for key, value in aws_cloudwatch_metric_alarm.all_alarms : key => value.alarm_name }
+}
+
+output "cpu_low_alarm_name" {
+  value = { for key, value in aws_cloudwatch_metric_alarm.all_alarms : key => value.arn }
+}
+
+output "cpu_high_alarm_arn" {
+  value = aws_cloudwatch_metric_alarm.all_alarms["cpu_high"].arn
+}
+
+output "cpu_low_alarm_arn" {
+  value = aws_cloudwatch_metric_alarm.all_alarms["cpu_low"].arn
+}
+
 output "autoscaling_group_id" {
   description = "The AutoScaling Group id"
   value       = join("", aws_autoscaling_group.default.*.id)
