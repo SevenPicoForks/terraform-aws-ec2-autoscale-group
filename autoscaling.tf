@@ -26,7 +26,7 @@ resource "aws_autoscaling_policy" "scale_down" {
 locals {
   default_ec2_alarms = {
     cpu_high = {
-      alarm_name                = "${module.context.id}${module.context.delimiter}cpu${module.context.delimiter}utilization${module.context.delimiter}high"
+      alarm_name                = "${module.context.delimiter}cpu${module.context.delimiter}utilization${module.context.delimiter}high"
       comparison_operator       = "GreaterThanOrEqualToThreshold"
       evaluation_periods        = var.cpu_utilization_high_evaluation_periods
       metric_name               = "CPUUtilization"
@@ -43,7 +43,7 @@ locals {
       insufficient_data_actions = []
     },
     cpu_low = {
-      alarm_name                = "${module.context.id}${module.context.delimiter}cpu${module.context.delimiter}utilization${module.context.delimiter}low"
+      alarm_name                = "${module.context.delimiter}cpu${module.context.delimiter}utilization${module.context.delimiter}low"
       comparison_operator       = "LessThanOrEqualToThreshold"
       evaluation_periods        = var.cpu_utilization_low_evaluation_periods
       metric_name               = "CPUUtilization"
