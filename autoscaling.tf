@@ -39,7 +39,7 @@ locals {
       alarm_description         = "Scale up if CPU utilization is above ${var.cpu_utilization_high_threshold_percent} for ${var.cpu_utilization_high_period_seconds} * ${var.cpu_utilization_high_evaluation_periods} seconds"
       alarm_actions             = concat([join("", aws_autoscaling_policy.scale_up.*.arn)], var.create_alert_sns_notifications ? [module.sns.topic_arn] : [])
       treat_missing_data        = "missing"
-      ok_actions                = []
+      ok_actions                = var.create_alert_sns_notifications ? [module.sns.topic_arn] : []
       insufficient_data_actions = []
     },
     cpu_low = {
@@ -56,7 +56,7 @@ locals {
       alarm_description         = "Scale down if the CPU utilization is below ${var.cpu_utilization_low_threshold_percent} for ${var.cpu_utilization_low_period_seconds} * ${var.cpu_utilization_high_evaluation_periods} seconds"
       alarm_actions             = concat([join("", aws_autoscaling_policy.scale_down.*.arn)], var.create_alert_sns_notifications ? [module.sns.topic_arn] : [])
       treat_missing_data        = "missing"
-      ok_actions                = []
+      ok_actions                = var.create_alert_sns_notifications ? [module.sns.topic_arn] : []
       insufficient_data_actions = []
     }
   }
