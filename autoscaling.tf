@@ -84,5 +84,5 @@ resource "aws_cloudwatch_metric_alarm" "all_alarms" {
 
   alarm_description = each.value.alarm_description
   alarm_actions     = each.value.alarm_actions
-  tags              = var.tags
+  tags              = module.context.tags
 }
