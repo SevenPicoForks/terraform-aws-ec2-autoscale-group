@@ -1,4 +1,18 @@
+data "aws_subnet" "this" {
+  for_each = length(var.subnet_ids) > 0 ? { for idx, subnet in var.subnet_ids : idx => subnet } : {}
+  id       = each.value
+}
+
+data "aws_ec2_instance_type" "default" {
+  count = (
+    var.cpu_options != null && try(var.cpu_options.threads_per_core, null) != null && try(var.cpu_options.core_count, null) == null ? 1 : 0
+  )
+
+  instance_type = var.instance_type
+}
+
 resource "aws_launch_template" "default" {
+  #checkov:skip=CKV_AWS_341:metadata response hop limit is controlled through variable. It should not be greater than 1.
   count = module.context.enabled ? 1 : 0
 
   name_prefix = format("%s%s", module.context.id, module.context.delimiter)
@@ -16,6 +30,7 @@ resource "aws_launch_template" "default" {
           delete_on_termination = lookup(block_device_mappings.value.ebs, "delete_on_termination", null)
           encrypted             = lookup(block_device_mappings.value.ebs, "encrypted", null)
           iops                  = lookup(block_device_mappings.value.ebs, "iops", null)
+          throughput            = lookup(block_device_mappings.value.ebs, "throughput", null)
           kms_key_id            = lookup(block_device_mappings.value.ebs, "kms_key_id", null)
           snapshot_id           = lookup(block_device_mappings.value.ebs, "snapshot_id", null)
           volume_size           = lookup(block_device_mappings.value.ebs, "volume_size", null)
@@ -35,13 +50,6 @@ resource "aws_launch_template" "default" {
   disable_api_termination = var.disable_api_termination
   ebs_optimized           = var.ebs_optimized
   update_default_version  = var.update_default_version
-
-  dynamic "elastic_gpu_specifications" {
-    for_each = var.elastic_gpu_specifications != null ? [var.elastic_gpu_specifications] : []
-    content {
-      type = lookup(elastic_gpu_specifications.value, "type", null)
-    }
-  }
 
   image_id                             = var.image_id
   instance_initiated_shutdown_behavior = var.instance_initiated_shutdown_behavior
@@ -79,12 +87,28 @@ resource "aws_launch_template" "default" {
     }
   }
 
-  user_data = var.user_data_base64
+  user_data = var.user_data != "" ? base64encode(var.user_data) : var.user_data_base64
 
   dynamic "iam_instance_profile" {
     for_each = var.iam_instance_profile_name != "" ? [var.iam_instance_profile_name] : []
     content {
       name = iam_instance_profile.value
+    }
+  }
+
+  dynamic "cpu_options" {
+    for_each = var.cpu_options != null ? [var.cpu_options] : []
+    content {
+      amd_sev_snp = cpu_options.value.amd_sev_snp_enabled != null ? (cpu_options.value.amd_sev_snp_enabled ? "enabled" : "disabled") : null
+
+      # if threads_per_core is set and core_count is not set, use the default cores from the instance type
+      core_count = (
+        cpu_options.value.core_count != null ? cpu_options.value.core_count : (
+          cpu_options.value.threads_per_core == null ? null : one(data.aws_ec2_instance_type.default[*].default_cores)
+        )
+      )
+
+      threads_per_core = lookup(cpu_options.value, "threads_per_core", null)
     }
   }
 
@@ -94,11 +118,12 @@ resource "aws_launch_template" "default" {
 
   # https://github.com/terraform-providers/terraform-provider-aws/issues/4570
   network_interfaces {
-    description                 = module.context.id
+    description                 = var.network_interface_id == null ? module.context.id : null
     device_index                = 0
-    associate_public_ip_address = var.associate_public_ip_address
-    delete_on_termination       = true
-    security_groups             = var.security_group_ids
+    associate_public_ip_address = var.network_interface_id == null ? var.associate_public_ip_address : null
+    delete_on_termination       = var.network_interface_id == null ? true : false
+    security_groups             = var.network_interface_id == null ? var.security_group_ids : null
+    network_interface_id        = var.network_interface_id
   }
 
   metadata_options {
@@ -106,6 +131,7 @@ resource "aws_launch_template" "default" {
     http_put_response_hop_limit = var.metadata_http_put_response_hop_limit
     http_tokens                 = (var.metadata_http_tokens_required) ? "required" : "optional"
     http_protocol_ipv6          = (var.metadata_http_protocol_ipv6_enabled) ? "enabled" : "disabled"
+    instance_metadata_tags      = (var.metadata_instance_metadata_tags_enabled) ? "enabled" : "disabled"
   }
 
   dynamic "tag_specifications" {
@@ -126,8 +152,8 @@ resource "aws_launch_template" "default" {
 
 locals {
   launch_template_block = {
-    id      = join("", aws_launch_template.default.*.id)
-    version = var.launch_template_version != "" ? var.launch_template_version : join("", aws_launch_template.default.*.latest_version)
+    id      = one(aws_launch_template.default[*].id)
+    version = var.launch_template_version != "" ? var.launch_template_version : one(aws_launch_template.default[*].latest_version)
   }
   launch_template = (
     var.mixed_instances_policy == null ? local.launch_template_block
@@ -138,13 +164,19 @@ locals {
       launch_template        = local.launch_template_block
       override               = var.mixed_instances_policy.override
   })
+  availability_zones = [for subnet in data.aws_subnet.this : subnet.availability_zone]
+  tags = {
+    for key, value in module.context.tags :
+    key => value if value != "" && value != null
+  }
 }
 
 resource "aws_autoscaling_group" "default" {
   count = module.context.enabled ? 1 : 0
 
   name_prefix               = format("%s%s", module.context.id, module.context.delimiter)
-  vpc_zone_identifier       = var.subnet_ids
+  vpc_zone_identifier       = var.network_interface_id == null ? var.subnet_ids : null
+  availability_zones        = var.network_interface_id != null ? local.availability_zones : null
   max_size                  = var.max_size
   min_size                  = var.min_size
   load_balancers            = var.load_balancers
@@ -173,7 +205,7 @@ resource "aws_autoscaling_group" "default" {
     content {
       strategy = instance_refresh.value.strategy
       dynamic "preferences" {
-        for_each = (length(instance_refresh.value.preferences) > 0 ? [instance_refresh.value.preferences] : [])
+        for_each = instance_refresh.value.preferences != null ? [instance_refresh.value.preferences] : []
         content {
           instance_warmup        = lookup(preferences.value, "instance_warmup", null)
           min_healthy_percentage = lookup(preferences.value, "min_healthy_percentage", null)
@@ -238,14 +270,20 @@ resource "aws_autoscaling_group" "default" {
       pool_state                  = try(warm_pool.value.pool_state, null)
       min_size                    = try(warm_pool.value.min_size, null)
       max_group_prepared_capacity = try(warm_pool.value.max_group_prepared_capacity, null)
+      dynamic "instance_reuse_policy" {
+        for_each = var.instance_reuse_policy != null ? [var.instance_reuse_policy] : []
+        content {
+          reuse_on_scale_in = instance_reuse_policy.value.reuse_on_scale_in
+        }
+      }
     }
   }
 
   dynamic "tag" {
-    for_each = keys(module.context.tags)
+    for_each = local.tags
     content {
-      key                 = tag.value
-      value               = module.context.tags[tag.value]
+      key                 = tag.key
+      value               = tag.value
       propagate_at_launch = true
     }
   }
