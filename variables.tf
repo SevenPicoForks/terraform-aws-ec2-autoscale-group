@@ -41,13 +41,25 @@ variable "launch_template_version" {
 
 variable "associate_public_ip_address" {
   type        = bool
-  description = "Associate a public IP address with an instance in a VPC"
+  description = "Associate a public IP address with an instance in a VPC. If `network_interface_id` is specified, this can only be `false` (see here for more info: https://stackoverflow.com/a/76808361)."
   default     = false
+}
+
+variable "network_interface_id" {
+  type        = string
+  description = "The ID of the network interface to attach. If specified, all the other network_interface block arguments are ignored."
+  default     = null
 }
 
 variable "user_data_base64" {
   type        = string
   description = "The Base64-encoded user data to provide when launching the instances"
+  default     = ""
+}
+
+variable "user_data" {
+  type        = string
+  description = "The cleartext user data to be Base64-encoded to provide when launching the instances"
   default     = ""
 }
 
@@ -71,18 +83,20 @@ variable "ebs_optimized" {
 
 variable "block_device_mappings" {
   description = "Specify volumes to attach to the instance besides the volumes specified by the AMI"
+
   type = list(object({
-    device_name  = string
-    no_device    = bool
-    virtual_name = string
+    device_name  = optional(string)
+    no_device    = optional(bool)
+    virtual_name = optional(string)
     ebs = object({
-      delete_on_termination = bool
-      encrypted             = bool
-      iops                  = number
-      kms_key_id            = string
-      snapshot_id           = string
-      volume_size           = number
-      volume_type           = string
+      delete_on_termination = optional(bool)
+      encrypted             = optional(bool)
+      iops                  = optional(number)
+      throughput            = optional(number)
+      kms_key_id            = optional(string)
+      snapshot_id           = optional(string)
+      volume_size           = optional(number)
+      volume_type           = optional(string)
     })
   }))
 
@@ -94,13 +108,13 @@ variable "instance_market_options" {
 
   type = object({
     market_type = string
-    spot_options = object({
-      block_duration_minutes         = number
-      instance_interruption_behavior = string
-      max_price                      = number
-      spot_instance_type             = string
-      valid_until                    = string
-    })
+    spot_options = optional(object({
+      block_duration_minutes         = optional(number)
+      instance_interruption_behavior = optional(string)
+      max_price                      = optional(number)
+      spot_instance_type             = optional(string)
+      valid_until                    = optional(string)
+    }))
   })
 
   default = null
@@ -110,11 +124,11 @@ variable "instance_refresh" {
   description = "The instance refresh definition"
   type = object({
     strategy = string
-    preferences = object({
-      instance_warmup        = number
-      min_healthy_percentage = number
-    })
-    triggers = list(string)
+    preferences = optional(object({
+      instance_warmup        = optional(number, null)
+      min_healthy_percentage = optional(number, null)
+    }), null)
+    triggers = optional(list(string), [])
   })
 
   default = null
@@ -124,18 +138,18 @@ variable "mixed_instances_policy" {
   description = "policy to used mixed group of on demand/spot of differing types. Launch template is automatically generated. https://www.terraform.io/docs/providers/aws/r/autoscaling_group.html#mixed_instances_policy-1"
 
   type = object({
-    instances_distribution = object({
+    instances_distribution = optional(object({
       on_demand_allocation_strategy            = string
       on_demand_base_capacity                  = number
       on_demand_percentage_above_base_capacity = number
       spot_allocation_strategy                 = string
       spot_instance_pools                      = number
       spot_max_price                           = string
-    })
-    override = list(object({
+    }))
+    override = optional(list(object({
       instance_type     = string
       weighted_capacity = number
-    }))
+    })))
   })
   default = null
 }
@@ -164,15 +178,6 @@ variable "credit_specification" {
   default = null
 }
 
-variable "elastic_gpu_specifications" {
-  description = "Specifications of Elastic GPU to attach to the instances"
-
-  type = object({
-    type = string
-  })
-
-  default = null
-}
 
 variable "disable_api_termination" {
   type        = bool
@@ -424,6 +429,7 @@ variable "custom_alarms" {
     namespace                 = string
     period                    = string
     statistic                 = string
+    extended_statistic        = string
     threshold                 = string
     treat_missing_data        = string
     ok_actions                = list(string)
@@ -464,6 +470,12 @@ variable "metadata_http_protocol_ipv6_enabled" {
   description = "Set true to enable IPv6 in the launch template."
 }
 
+variable "metadata_instance_metadata_tags_enabled" {
+  type        = bool
+  default     = false
+  description = "Set true to enable metadata tags in the launch template."
+}
+
 variable "tag_specifications_resource_types" {
   type        = set(string)
   default     = ["instance", "volume"]
@@ -489,5 +501,24 @@ variable "warm_pool" {
     max_group_prepared_capacity = number
   })
   description = "If this block is configured, add a Warm Pool to the specified Auto Scaling group. See [warm_pool](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/autoscaling_group#warm_pool)."
+  default     = null
+}
+
+variable "instance_reuse_policy" {
+  type = object({
+    reuse_on_scale_in = bool
+  })
+  description = "If warm pool and this block are configured, instances in the Auto Scaling group can be returned to the warm pool on scale in. The default is to terminate instances in the Auto Scaling group when the group scales in."
+  default     = null
+}
+
+variable "cpu_options" {
+  type = object({
+    amd_sev_snp_enabled = optional(bool, null)
+    core_count          = optional(number, null)
+    threads_per_core    = optional(number, null)
+
+  })
+  description = "The CPU options for the instance"
   default     = null
 }
